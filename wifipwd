@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# +-------------------------------------------+
+# |                                           |
+# | Maxi Perez Coto                           |
+# |                                           |
+# +-------------------------------------------+
+
+
+help(){
+	echo -e "NAME"
+	echo -e "\twifipwd"
+	echo -e "DESCRIPTION"
+	echo -e "\tFinds the wifi password of the current connected network in MacOS."
+  echo -e "\tYou need to give admininstrator access when prompted in order to execute properly."
+  echo -e "SYNOPSIS"
+	echo -e "\t./wifipwd"
+}
+
+if [ "$1" == "-?" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	help
+	exit
+fi
+
+airport="/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport"
+if [ ! -f $airport ]; then
+  echo "Airport program missing at \"$airport\"."
+  exit
+fi
+
+args="$@"
+ssid="`$airport -I | awk '/ SSID/ {print substr($0, index($0, $2))}'`"
+if [ "$ssid" = "" ]; then
+  echo "Could not find SSID. You are not be connected."
+  exit
+fi
+
+sleep 2
+pwd="`security find-generic-password -ga \"$ssid\" 2>&1 >/dev/null`"
+
+if [[ $pwd =~ "could" ]]; then
+  echo "Could not find SSID \"$ssid\""
+  exit
+fi
+
+pwd=$(echo "$pwd" | sed -e "s/^.*\"\(.*\)\".*$/\1/")
+
+if [ "" == "$pwd" ]; then
+  echo "Could not get password." >&2
+  exit
+fi
+
+echo $pwd
